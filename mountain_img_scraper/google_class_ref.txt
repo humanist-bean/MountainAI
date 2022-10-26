@@ -1,0 +1,16 @@
+TITLE: Google Class Reference for Image Scraping
+
+Description: Google uses really weird class names on their search result pages. This .txt is a reference to the names of those classes encountered throughout building the image scraper. 
+
+GUIDE:
+
+1. Google Search Results Image Button - home result page for any term's "Image" button, that takes you from the home page to the google images page.
+
+Class of "Image" button: cDaxAd
+
+2. Google Image Search "Show more results" button
+
+Value (use value here) of above button: value="Show more results"
+
+
+buffer
