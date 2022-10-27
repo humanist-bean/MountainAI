@@ -2,17 +2,13 @@ TITLE: Google Class Reference for Image Scraping
 
 Description: Google uses really weird class names on their search result pages. This .txt is a reference to the names of those classes encountered throughout building the image scraper. 
 
-GUIDE:
+GUIDE (NOTE: Get values from Selenium's chrome window as usual chrome has different values):
 
-1. Google Search Results Image Button - home result page for any term's "Image" button, that takes you from the home page to the google images page.
+1.A.(NOT WORKING!) Google Search Results Image Button - home result page for any term's "Image" button, that takes you from the home page to the google images page.
 
 Class of "Image" button: cDaxAd
 
-2. Google Image Search "Show more results" button
-
-Value (use value here) of above button: value="Show more results"
-
-3. ABOVE AREN'T WORKING, NEED TO GET VALUES FROM SELENIUM RUN CHROME BROWSER!
+1.B. (WORKS!) ABOVE ISN'T WORKING, NEED TO GET VALUES FROM SELENIUM RUN CHROME BROWSER!
 BELOW IS FOR GOOGLE "IMAGES" BUTTON IN MAIN SEARCH RESULTS PAGE
 
 SELECTOR
@@ -23,6 +19,18 @@ FULL XPATH
 
 XPATH
 //*[@id="hdtb-msb"]/div[1]/div/div[2]/a
+
+2. Google Image Search "Show more results" button
+
+Value (use value here) of above button: value="Show more results"
+
+3. Google Image Search (WORKS) - Xpath for first image, since we need to click on first image to get access to full size photos on google images. 
+
+FULL XPATH:
+/html/body/div[2]/c-wiz/div[3]/div[1]/div/div/div/div[1]/div[1]/span/div[1]/div[1]/div[1]/a[1]/div[1]/img
+
+4. REALLY USEFUL - URL for google image search - append query to end of URL with format "search+next+blah" e.g. to google image search for mt hood do "mt+hood". Here is the URL:
+https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q=
 
 
 buffer

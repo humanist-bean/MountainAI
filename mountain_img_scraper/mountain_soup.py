@@ -48,9 +48,12 @@ from selenium.common.exceptions import TimeoutException
 CONSTANTS    """
 #DRIVER_PATH = "/home/Alder French/Desktop/RoboFarmer3000/chromedriver"
 # added driver path to BASH so we don't need the above
-GOOG_IMG_BTN_CLASS_CODE = "cDaxAd"
+img_num_one_CLASS_CODE = "cDaxAd"
 SEARCH_PHRASES = ["mt hood", "Rainier", "mt st helens"] #for testing!
 GOOGLE_SEARCH_STARTER = "https://www.google.com/search?q="
+GOOGLE_IMG_SEARCH_STARTER = "https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q="
+
+NUMBER_OF_PHOTOS = 50
 
 """ SELENIUM TEST - (WORKS)
 options = Options()
@@ -105,16 +108,15 @@ for phrase in search_phrases:
     end_of_search = words[0]
     for word in words[1:]:
         end_of_search  = end_of_search + "+" + word
-    full_search = GOOGLE_SEARCH_STARTER + end_of_search
+    full_search = GOOGLE_IMG_SEARCH_STARTER + end_of_search
     print("Test: full_search is: " + full_search)
     # ABOVE CREATES URL TO SEARCH IN GOOGLE
     # NEXT SEARCH FOR THAT URL AND WAIT FOR IMAGE BUTTON
     driver.get(full_search)
     try:
-        goog_img_btn = WebDriverWait(driver, 7).until(
-            #EC.element_to_be_clickable((By.CLASS_NAME, "jmeM8b"))
+        img_num_one = WebDriverWait(driver, 7).until(
             EC.presence_of_element_located(
-                (By.XPATH, "/html/body/div[7]/div/div[4]/div/div[1]/div/div[1]/div/div[2]/a"))
+                (By.XPATH, "//*[@id=\"islrg\"]/div[1]/div[1]/a[1]/div[1]/img")) #mind the backslashes, we need them here
         ) #XPATH WORKS, By. CLASS_NAME DOESN'T!!!
     except NoSuchElementException:
         print("Encountered a NoSuchElement expection in phrase for loop: " + str(NoSuchElementException))
@@ -123,8 +125,26 @@ for phrase in search_phrases:
               str(TimeoutException))
     else:
         print("OPENING THE GOOGLE IMAGES PAGE FOR: " + phrase)
-        goog_img_btn.click()
-        time.sleep(7) 
+        img_num_one.click()
+        time.sleep(1)
+        #HERE IS WHERE WE ITERATE THROUGH AND COLLECT EACH PHOTOS URL!
+        big_img_right = WebDriverWait(driver, 7).until( #click on big version of image
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="Sva75c"]/div/div/div[3]/div[2]/c-wiz/div/div[1]/div[1]/div[2]/div[1]/a/img'))
+        )
+        time.sleep(3) #this is gonna make everything slow af...
+        #HONESTLY THESE WORKAROUNDS SUCK AND WILL MAKE EVERYTHING SLOW AF, MAYBE TRY CRAWLING BING?
+        big_img_right.click()
+        img_src = big_img_right.get_attribute('src')
+        print("The images source is" + str(img_src))
+        #Change the below to grab and click the "next photo" button
+        goog_img_enlarge_btn = WebDriverWait(driver, 100).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "/html/body/div[2]/c-wiz/div[3]/div[1]/div/div/div/div[1]/div[1]/span/div[1]/div[1]/div[1]/a[1]/div[1]/img"))
+        )
+        goog_img_enlarge_btn.click()
+        print("MADE IT!")
+        time.sleep(15)
     finally:
         print("Made it to finally block")
         #driver.quit()
