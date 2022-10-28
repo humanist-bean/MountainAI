@@ -39,5 +39,5 @@ See the source image
 id="OverlayIFrame"
 name="mt hood - Bing images - details"
 
-
+~/Desktop/MountainAI/mountain_img_scraper/
 buffer
