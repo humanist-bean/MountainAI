@@ -6,6 +6,10 @@ a list of search phrases and downloads all the images on the webpages
 into a folder. I intend to use this program to gather many photos of mountains 
 for training a mountain recognition AI. 
 
+COMMANDS
+Example (this is tested and works given the folder test_images_01 already exists):
+"sudo python mountain_soup.py test_mountains_small.txt images/test_images_01/ 7"
+
 NOTE: this is intended for use with a virtualenv, which can be activated
 by switching to the "mountainenv" directory and typing into terminal:
 source bin/activate
@@ -84,28 +88,44 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
     """
     #CONSTANTS
     BING_IMAGE_SEARCH_STARTER = "https://www.bing.com/images/search?q="
-    TIME_BETWEEN_PHOTOS = 0.5 # in Seconds
+    TIME_BETWEEN_PHOTOS = 1.0 # in Seconds
 
 
     """ SELENIUM TEST - (WORKS AND HAS USEFUL OPTIONS!)
     options = Options()
     options.headless = True
-    options.add_argument("--window-size=1920,1200")
+    #options.add_argument("--window-size=1920,1200")
+    """
+    chrome_options = webdriver.ChromeOptions()
+    ### This blocks images and javascript requests which speeds up
+    ### image collection but also makes it so we only collect URLs
+    ### of the lower quality images, which might be ok...
+    chrome_prefs = {
+        "profile.default_content_setting_values": {
+            "images": 2,
+        }
+    }
+    #chrome_options.experimental_options["prefs"] = chrome_prefs
+    #chrome_options.headless = True
+    ###
+    
 
+    """
     service = Service(DRIVER_PATH)
     #service.start()
     #driver = webdriver.Remote(service.service_url)
     #driver = webdriver.Chrome(DRIVER_PATH, options=options)
     driver = webdriver.Chrome() #THIS WORKS! YAY GOT SELENIUM WORKING!
 
-
+    
     driver.get("https://www.nintendo.com/")
     time.sleep(5)
     print(driver.page_source)
     driver.quit() END TEST"""
 
     search_phrases = search_phrase_list #["mt hood"] #SEARCH_PHRASES
-    driver = webdriver.Chrome()  # THIS WORKS! YAY GOT SELENIUM WORKING!
+    # THIS WORKS! YAY GOT SELENIUM WORKING!
+    driver = webdriver.Chrome(options=chrome_options)
     sources = []
     for phrase in search_phrases:
         words = phrase.split()
@@ -148,15 +168,22 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
         # the number of photos you need for each mountain
         lastsrc = None
         src = None
-        repeats = 0
         for i in range(0, number_of_photos_per_phrase):
-            big_img_next_button = WebDriverWait(driver, 7).until(
-                EC.element_to_be_clickable(
-                    (By.ID, 'navr'))
-            )
+            try:
+                big_img_next_button = WebDriverWait(driver, 7).until(
+                    EC.presence_of_element_located(
+                        (By.ID, 'navr'))
+                )
+            except NoSuchElementException:
+                print("Encountered a NoSuchElement expection in next image button grab: " +
+                    str(NoSuchElementException))
+            except TimeoutException:
+                print("Encountered a timeout expection in next image button grab: " +
+                    str(TimeoutException))
             lastsrc = src
             src = get_url_of_main_bing_image(driver)
-            while(lastsrc == src):
+            repeats = 0
+            while(lastsrc == src) and repeats < 5:
                 repeats += 1
                 time.sleep(TIME_BETWEEN_PHOTOS * (repeats + 1))
                 src = get_url_of_main_bing_image(driver)         
@@ -166,7 +193,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
             #print("MADE IT TO NEXT IMAGE!")
 
         print("Number of while loops because lastsrc == src: " + str(repeats))
-        print("ALL DONE: exiting browser...")
+        print("Done collecting image URLs: exiting browser...")
     driver.quit()
     return sources
     #TO HERE END SELENIUM WORK IN PROGRESS
@@ -184,18 +211,11 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
     parent_dir_less_slash = "~/Desktop/MountainAI/mountain_img_scraper"
     k = 0
     for phrase in search_phrase_list:
-        folder_path = path_to_images_folder + phrase + "/"
-        path_to_make = path_to_images_folder + phrase
-        print("Trying to create directory: " + path_to_make)
-        try:
-            os.mkdir(path_to_make)
-        except OSError as error:
-            print(error)
+        folder_path = path_to_images_folder
         for i in range(0, number_of_each):
             image = urls[i + (k * number_of_each)]
             webs = requests.get(image)           
-            open(folder_path + image.split('/')
-                 [-1], 'wb').write(webs.content)
+            open(folder_path + phrase + " " + str(i), 'wb').write(webs.content)
         k += 1
 
 
@@ -210,7 +230,7 @@ if __name__ == "__main__":
        number_of_photos = int(sys.argv[3])
    else:
         phrase_text_file = str(input("Enter the name of the .txt file where your search phrases are. \n"))
-        image_folder_path = str(input("Enter the path to your images folder where the images will be downloaded ending with '/'.\n"))
+        image_folder_path = str(input("Enter the path to your image downloads folder starting without '/' but ending with '/'.\n"))
         number_of_photos = int(input("Enter the number of photos you want for each search phrase.\n"))
    SEARCH_PHRASES = ["mt hood", "Rainier", "mt st helens"]  # for testing!
    NUMBER_OF_PHOTOS = 5
