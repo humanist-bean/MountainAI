@@ -41,34 +41,19 @@ from selenium.common.exceptions import TimeoutException
 
 
 
-def get_url_of_main_bing_image(driver):
-    #STEP 2: get url of enlarged first image
-    try:
-        main_image = WebDriverWait(driver, 7).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//*[@id="mainImageWindow"]/div[2]/div/div/div/img'))
-        )
-    except NoSuchElementException:
-        print("Encountered a NoSuchElement expection while looking for main image " +
-              str(NoSuchElementException))
-    except TimeoutException:
-        print("Encountered a timeout expection while looking for main image " +
-              str(TimeoutException))
-    finally:
-        #print("Made it to finally block for main image")
-        src = main_image.get_attribute('src')
-        return src
+
 
 #SELENIUM PART OF PROJECT WORK IN PROGRESS FROM HERE
 """
 CONSTANTS    """
 #DRIVER_PATH = "/home/Alder French/Desktop/RoboFarmer3000/chromedriver"
 # added driver path to BASH so we don't need the above
+img_num_one_CLASS_CODE = "cDaxAd"
 SEARCH_PHRASES = ["mt hood", "Rainier", "mt st helens"] #for testing!
-BING_IMAGE_SEARCH_STARTER = "https://www.bing.com/images/search?q="
-TIME_BETWEEN_PHOTOS = 0.5 # O.2 Seconds
+GOOGLE_SEARCH_STARTER = "https://www.google.com/search?q="
+GOOGLE_IMG_SEARCH_STARTER = "https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q="
 
-NUMBER_OF_PHOTOS = 5
+NUMBER_OF_PHOTOS = 50
 
 """ SELENIUM TEST - (WORKS)
 options = Options()
@@ -123,59 +108,47 @@ for phrase in search_phrases:
     end_of_search = words[0]
     for word in words[1:]:
         end_of_search  = end_of_search + "+" + word
-    full_search = BING_IMAGE_SEARCH_STARTER + end_of_search
+    full_search = GOOGLE_IMG_SEARCH_STARTER + end_of_search
     print("Test: full_search is: " + full_search)
     # ABOVE CREATES URL TO SEARCH IN GOOGLE
     # NEXT SEARCH FOR THAT URL AND WAIT FOR IMAGE BUTTON
-    # STEP 1. BING IMAGE SEARCH FOR URL AND CLICK ON FIRST IMAGE
     driver.get(full_search)
     try:
         img_num_one = WebDriverWait(driver, 7).until(
             EC.presence_of_element_located(
-                (By.XPATH, "//img[contains(@alt, 'Image result for {}')]".format(phrase)))  
+                (By.XPATH, "//*[@id=\"islrg\"]/div[1]/div[1]/a[1]/div[1]/img")) #mind the backslashes, we need them here
         ) #XPATH WORKS, By. CLASS_NAME DOESN'T!!!
     except NoSuchElementException:
         print("Encountered a NoSuchElement expection in phrase for loop: " + str(NoSuchElementException))
     except TimeoutException:
         print("Encountered a timeout expection in phrase for loop: " +
               str(TimeoutException))
-    finally:
-        print("Made it to finally block")
+    else:
         print("OPENING THE GOOGLE IMAGES PAGE FOR: " + phrase)
         img_num_one.click()
-        #TESTED AND WORKS UP TO HERE
-    
-    #HERE IS WHERE WE ITERATE THROUGH AND COLLECT EACH PHOTOS URL!
-    #STEP 2: get url of enlarged first image NOW MOVED LOGIC TO METHOD!
-    driver.switch_to.frame("{} - Bing images - details".format(phrase))
-    print("Switched frames!")
-
-    #get_url_of_main_bing_image(driver)
-    
-    #STEP 3. Click the "next photo" button and repeat Step 2 for
-    # the number of photos you need for each mountain
-    lastsrc = None
-    src = None
-    repeats = 0
-    for i in range(0, NUMBER_OF_PHOTOS):
-        big_img_next_button = WebDriverWait(driver, 7).until(
-            EC.element_to_be_clickable(
-                (By.ID, 'navr'))
+        time.sleep(1)
+        #HERE IS WHERE WE ITERATE THROUGH AND COLLECT EACH PHOTOS URL!
+        big_img_right = WebDriverWait(driver, 7).until( #click on big version of image
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="Sva75c"]/div/div/div[3]/div[2]/c-wiz/div/div[1]/div[1]/div[2]/div[1]/a/img'))
         )
-        lastsrc = src
-        src = get_url_of_main_bing_image(driver)
-        while(lastsrc == src):
-            repeats += 1
-            time.sleep(TIME_BETWEEN_PHOTOS)
-            src = get_url_of_main_bing_image(driver)
-        big_img_next_button.click()
-        #time.sleep(5)
-        print(str(i + 1) + ". image URL is: " + str(src))
-        #print("MADE IT TO NEXT IMAGE!")
+        time.sleep(3) #this is gonna make everything slow af...
+        #HONESTLY THESE WORKAROUNDS SUCK AND WILL MAKE EVERYTHING SLOW AF, MAYBE TRY CRAWLING BING?
+        big_img_right.click()
+        img_src = big_img_right.get_attribute('src')
+        print("The images source is" + str(img_src))
+        #Change the below to grab and click the "next photo" button
+        goog_img_enlarge_btn = WebDriverWait(driver, 100).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "/html/body/div[2]/c-wiz/div[3]/div[1]/div/div/div/div[1]/div[1]/span/div[1]/div[1]/div[1]/a[1]/div[1]/img"))
+        )
+        goog_img_enlarge_btn.click()
+        print("MADE IT!")
+        time.sleep(15)
+    finally:
+        print("Made it to finally block")
+        #driver.quit()
 
-    print("Number of while loops because lastsrc == src: " + str(repeats))
-    print("ALL DONE: exiting browser...")
-    driver.quit()
 
 
 

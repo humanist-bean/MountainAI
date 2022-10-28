@@ -32,5 +32,12 @@ FULL XPATH:
 4. REALLY USEFUL - URL for google image search - append query to end of URL with format "search+next+blah" e.g. to google image search for mt hood do "mt+hood". Here is the URL:
 https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q=
 
+5.
+See the source image
+#mainImageWindow > div.mainImage.current.curimgonview > div > div > div > img
+//*[@id="mainImageWindow"]/div[2]/div/div/div/img
+id="OverlayIFrame"
+name="mt hood - Bing images - details"
+
 
 buffer
