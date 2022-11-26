@@ -223,7 +223,7 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
 if __name__ == "__main__":
    print("Running mountain_soup.py...")
    #CONSTANTS
-   print(len(sys.argv))
+   #print(len(sys.argv))
    if len(sys.argv) > 1:
        phrase_text_file = str(sys.argv[1])
        image_folder_path = str(sys.argv[2])
