@@ -14,14 +14,16 @@ for photos in mountain_soup.py.
 """
 
 import sys
+import re
 
 
 def clean_list(input_name, output_name):
-    mountain_list_dirty = open(input_name, "r")
+    mountain_list_dirty = open(input_name, "r", encoding="utf-8")
     mountain_list_clean = open(output_name, "w")
     mountain_words = ['mountain', 'mt.', 'mt', 'mount', 'butte', 'peak']
     for line in mountain_list_dirty.readlines():
         line = line.lower()
+        line = re.sub('[^A-Za-z0-9]+', ' ', line) #removes all non number or letter characters
         mt_names = 0
         for word in mountain_words:
             if word in line:
@@ -29,6 +31,8 @@ def clean_list(input_name, output_name):
         if mt_names == 0:
             line = line.strip()
             line = line + ' mountain \n'
+        else:
+            line = line + '\n'
         #print(line)
         mountain_list_clean.write(line)
     mountain_list_dirty.close()
