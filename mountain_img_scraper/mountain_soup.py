@@ -148,32 +148,46 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
         # ABOVE CREATES URL TO SEARCH IN GOOGLE
         # NEXT SEARCH FOR THAT URL AND WAIT FOR IMAGE BUTTON
         # STEP 1. BING IMAGE SEARCH FOR URL AND CLICK ON FIRST IMAGE
-        driver.get(full_search)
-        try:
-            img_num_one = WebDriverWait(driver, 7).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//img[contains(@alt, 'Image result for {}')]".format(phrase)))  
-            ) #XPATH WORKS, By. CLASS_NAME DOESN'T!!!
-        except NoSuchElementException:
-            print("Encountered a NoSuchElement expection in phrase for loop: " + str(NoSuchElementException))
-        except TimeoutException:
-            print("Encountered a timeout expection in phrase for loop: " +
-                str(TimeoutException))
-        finally:
-            print("Made it to finally block")
-            print("OPENING THE GOOGLE IMAGES PAGE FOR: " + phrase)
-            img_num_one.click()
-            #TESTED AND WORKS UP TO HERE
+        print("OPENING THE GOOGLE IMAGES PAGE FOR: " + phrase)
+        for x in range (1, 8):
+            try:
+                driver.get(full_search)
+                img_num_one = WebDriverWait(driver, 7).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//img[contains(@alt, 'Image result for {}')]".format(phrase)))
+                ) #XPATH WORKS, By. CLASS_NAME DOESN'T!!!
+                img_num_one.click()
+                break
+            except NoSuchElementException:
+                print("Encountered a NoSuchElement exception in phrase for loop: " + str(NoSuchElementException))
+                time.sleep(1)
+                continue
+            except TimeoutException:
+                print("Encountered a timeout exception in phrase for loop: " +
+                    str(TimeoutException))
+                time.sleep(1)
+                continue
+            except WebDriverException:
+                print("Encountered a Web Driver exception in phrase for loop: " +
+                      str(TimeoutException))
+                time.sleep(1)
+                continue
+            except StaleElementReferenceException:
+                print("Encountered a stale element reference exception while attempting to click on the first image: " +
+                      str(StaleElementReferenceException))
+                time.sleep(1)
+                continue
+
+        #TESTED AND WORKS UP TO HERE
         
         #HERE IS WHERE WE ITERATE THROUGH AND COLLECT EACH PHOTOS URL!
         #STEP 2: get url of enlarged first image NOW MOVED LOGIC TO METHOD!
         driver.switch_to.frame("{} - Bing images - details".format(phrase))
         print("Switched frames!")
-
-        #get_url_of_main_bing_image(driver)
         
         #STEP 3. Click the "next photo" button and repeat Step 2 for
         # the number of photos you need for each mountain
+        # TODO: collapse this 3rd step somehow because it looks gross
         lastsrc = None
         src = None
         for i in range(0, number_of_photos_per_phrase):
@@ -191,7 +205,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
             lastsrc = src
             src = get_url_of_main_bing_image(driver)
             repeats = 0
-            while(lastsrc == src) and repeats < 5:
+            while(lastsrc == src) and repeats < 7:
                 repeats += 1
                 time.sleep(TIME_BETWEEN_PHOTOS * (repeats + 1))
                 src = get_url_of_main_bing_image(driver)         
@@ -217,7 +231,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                         print("Encountered a timeout expection in NESTED next image button grab: " +
                               str(TimeoutException))
             if k >= 7: #runs when there is no more next image button because there is no more images
-                print ("Tried to grab button 7 times, skipping because we probably just ran out of photos"
+                print("Tried to grab button 7 times, skipping because we probably just ran out of photos"
                        + " for this bing image search")
                 for j in range((i + 1), number_of_photos_per_phrase):
                     sources.append(None) #fill remaining sources positions with None
