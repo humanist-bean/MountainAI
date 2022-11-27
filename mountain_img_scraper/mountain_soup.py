@@ -44,6 +44,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException
+
 
 def txt_to_phrase_list(txtFileString):
     """
@@ -67,14 +69,20 @@ def get_url_of_main_bing_image(driver):
                 (By.XPATH, '//*[@id="mainImageWindow"]/div[2]/div/div/div/img'))
         )
     except NoSuchElementException:
-        print("Encountered a NoSuchElement expection while looking for main image " +
+        print("Encountered a NoSuchElement expection while looking for main image: " +
               str(NoSuchElementException))
     except TimeoutException:
-        print("Encountered a timeout expection while looking for main image " +
+        print("Encountered a timeout expection while looking for main image: " +
               str(TimeoutException))
     else:
         #print("Made it to finally block for main image")
-        src = main_image.get_attribute('src')
+        try:
+            src = main_image.get_attribute('src')
+        except StaleElementReferenceException:
+            print("Encountered a stale element reference exception while looking for main image's src: " +
+                  str(StaleElementReferenceException))
+            time.sleep(1)
+            return get_url_of_main_bing_image(driver) # upon this exception retry method via recursive call
         return src
 
 
@@ -189,7 +197,32 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 src = get_url_of_main_bing_image(driver)         
             print(str(i + 1) + ". image URL is: " + str(src))
             sources.append(src)
-            big_img_next_button.click()
+            for k in range(1, 8): #try 7 times then skip cuz probably no more photos and thus no button
+                try:
+                    big_img_next_button.click()
+                    break
+                except StaleElementReferenceException:
+                    print("Encountered a stale element reference exception while attempting to click big image's next button" +
+                          str(StaleElementReferenceException))
+                    time.sleep(1)
+                    try:
+                        big_img_next_button = WebDriverWait(driver, 7).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'navr'))
+                        )
+                    except NoSuchElementException:
+                        print("Encountered a NoSuchElement expection in NESTED next image button grab: " +
+                              str(NoSuchElementException))
+                    except TimeoutException:
+                        print("Encountered a timeout expection in NESTED next image button grab: " +
+                              str(TimeoutException))
+            if k >= 7: #runs when there is no more next image button because there is no more images
+                print ("Tried to grab button 7 times, skipping because we probably just ran out of photos"
+                       + " for this bing image search")
+                for j in range((i + 1), number_of_photos_per_phrase):
+                    sources.append(None) #fill remaining sources positions with None
+                break
+
             #print("MADE IT TO NEXT IMAGE!")
 
         print("Number of while loops because lastsrc == src: " + str(repeats))
@@ -214,8 +247,9 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
         folder_path = path_to_images_folder
         for i in range(0, number_of_each):
             image = urls[i + (k * number_of_each)]
-            webs = requests.get(image)           
-            open(folder_path + phrase + " " + str(i), 'wb').write(webs.content)
+            if image != None:
+                webs = requests.get(image)
+                open(folder_path + phrase + " " + str(i), 'wb').write(webs.content)
         k += 1
 
 
