@@ -14,7 +14,7 @@ from fastai.vision.all import *
 
 def main():
    print("Running mountain_fastai.py...")
-   path = Path("images/test_images_01/")
+   path = Path("images/test_cleaner_small/")
    print("path: " + str(path))
    [print(str(f)) for f in path.iterdir() if f.is_file()]
    #files = get_image_files(path)
@@ -27,7 +27,7 @@ def main():
        "./", files, pat, item_tfms=Resize(460), batch_tfms=aug_transforms(size=224))
    learn = vision_learner(dls, resnet34, metrics=error_rate)
    #learn.show_results()
-   #learn.lr_find()
+   learn.lr_find()
    learn.fine_tune(2, 3e-3)
    learn.path = Path("models/")
    print("Trained model sucessfully, trying to export...")

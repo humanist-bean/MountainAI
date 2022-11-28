@@ -244,7 +244,7 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
             image = urls[i + (k * number_of_each)]
             if image != None:
                 webs = requests.get(image)
-                open(folder_path + phrase + " " + str(i), 'wb').write(webs.content)
+                open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
         k += 1
 
 
