@@ -1,0 +1,11 @@
+<!-- USE THIS TO SEND A PHOTO TO THE SERVER FOR CLASSIFICATION -->
+<html>
+  <form action="http://localhost:5000/predict" enctype="multipart/form-data" method="POST">
+    <div>
+      <label for="say">Get the image whose image you want to classify</label>
+      <input name="say" id="say" value="Hi" />
+      <input id="fileupload" name="myfile" type="file" />
+      <input type="submit" value="submit" id="submit" />
+    </div>
+  </form>
+</html>
