@@ -45,6 +45,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import WebDriverException
+
 
 
 def txt_to_phrase_list(txtFileString):
@@ -101,18 +103,18 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
 
     # SELENIUM AND CHROMEDRIVER SETTINGS
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.headless = True
+    #chrome_options.headless = True
     ### This blocks images and javascript requests which speeds up
     ### image collection but also makes it so we only collect URLs
     ### of the lower quality images, which might be ok...
-    """
+
     chrome_prefs = {
         "profile.default_content_setting_values": {
             "images": 2,
         }
     }
     chrome_options.experimental_options["prefs"] = chrome_prefs
-    """
+
     ###
 
     search_phrases = search_phrase_list #["mt hood"] #SEARCH_PHRASES
