@@ -97,39 +97,23 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
     #CONSTANTS
     BING_IMAGE_SEARCH_STARTER = "https://www.bing.com/images/search?q="
     TIME_BETWEEN_PHOTOS = 1.0 # in Seconds
+    TRIES = 3
 
-
-    """ SELENIUM TEST - (WORKS AND HAS USEFUL OPTIONS!)
-    options = Options()
-    options.headless = True
-    #options.add_argument("--window-size=1920,1200")
-    """
+    # SELENIUM AND CHROMEDRIVER SETTINGS
     chrome_options = webdriver.ChromeOptions()
+    chrome_options.headless = True
     ### This blocks images and javascript requests which speeds up
     ### image collection but also makes it so we only collect URLs
     ### of the lower quality images, which might be ok...
+    """
     chrome_prefs = {
         "profile.default_content_setting_values": {
             "images": 2,
         }
     }
-    #chrome_options.experimental_options["prefs"] = chrome_prefs
-    #chrome_options.headless = True
-    ###
-    
-
+    chrome_options.experimental_options["prefs"] = chrome_prefs
     """
-    service = Service(DRIVER_PATH)
-    #service.start()
-    #driver = webdriver.Remote(service.service_url)
-    #driver = webdriver.Chrome(DRIVER_PATH, options=options)
-    driver = webdriver.Chrome() #THIS WORKS! YAY GOT SELENIUM WORKING!
-
-    
-    driver.get("https://www.nintendo.com/")
-    time.sleep(5)
-    print(driver.page_source)
-    driver.quit() END TEST"""
+    ###
 
     search_phrases = search_phrase_list #["mt hood"] #SEARCH_PHRASES
     # THIS WORKS! YAY GOT SELENIUM WORKING!
@@ -149,7 +133,8 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
         # NEXT SEARCH FOR THAT URL AND WAIT FOR IMAGE BUTTON
         # STEP 1. BING IMAGE SEARCH FOR URL AND CLICK ON FIRST IMAGE
         print("OPENING THE GOOGLE IMAGES PAGE FOR: " + phrase)
-        for x in range (1, 8):
+        success = False
+        for x in range (1, TRIES):
             try:
                 driver.get(full_search)
                 img_num_one = WebDriverWait(driver, 7).until(
@@ -157,6 +142,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                         (By.XPATH, "//img[contains(@alt, 'Image result for {}')]".format(phrase)))
                 ) #XPATH WORKS, By. CLASS_NAME DOESN'T!!!
                 img_num_one.click()
+                success = True
                 break
             except NoSuchElementException:
                 print("Encountered a NoSuchElement exception in phrase for loop: " + str(NoSuchElementException))
@@ -177,6 +163,12 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                       str(StaleElementReferenceException))
                 time.sleep(1)
                 continue
+        if not success:
+            print("Failed to open page for: " + phrase + ", filling sources with None and continuing to next phrase...")
+            for y in range(0, number_of_photos_per_phrase):
+                sources.append(None)  # fill remaining sources positions with None
+            driver.quit()
+            return sources
 
         #TESTED AND WORKS UP TO HERE
         
@@ -187,21 +179,9 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
         
         #STEP 3. Click the "next photo" button and repeat Step 2 for
         # the number of photos you need for each mountain
-        # TODO: collapse this 3rd step somehow because it looks gross
         lastsrc = None
         src = None
         for i in range(0, number_of_photos_per_phrase):
-            try:
-                big_img_next_button = WebDriverWait(driver, 7).until(
-                    EC.presence_of_element_located(
-                        (By.ID, 'navr'))
-                )
-            except NoSuchElementException:
-                print("Encountered a NoSuchElement expection in next image button grab: " +
-                    str(NoSuchElementException))
-            except TimeoutException:
-                print("Encountered a timeout expection in next image button grab: " +
-                    str(TimeoutException))
             lastsrc = src
             src = get_url_of_main_bing_image(driver)
             repeats = 0
@@ -211,36 +191,35 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 src = get_url_of_main_bing_image(driver)         
             print(str(i + 1) + ". image URL is: " + str(src))
             sources.append(src)
-            for k in range(1, 8): #try 7 times then skip cuz probably no more photos and thus no button
+            for k in range(0, TRIES):  #try TRIES times then skip cuz probably no more photos and thus no button
                 try:
+                    big_img_next_button = WebDriverWait(driver, 7).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'navr'))
+                    )
                     big_img_next_button.click()
                     break
                 except StaleElementReferenceException:
                     print("Encountered a stale element reference exception while attempting to click big image's next button" +
                           str(StaleElementReferenceException))
                     time.sleep(1)
-                    try:
-                        big_img_next_button = WebDriverWait(driver, 7).until(
-                            EC.presence_of_element_located(
-                                (By.ID, 'navr'))
-                        )
-                    except NoSuchElementException:
-                        print("Encountered a NoSuchElement expection in NESTED next image button grab: " +
-                              str(NoSuchElementException))
-                    except TimeoutException:
-                        print("Encountered a timeout expection in NESTED next image button grab: " +
-                              str(TimeoutException))
-            if k >= 7: #runs when there is no more next image button because there is no more images
-                print("Tried to grab button 7 times, skipping because we probably just ran out of photos"
+                except NoSuchElementException:
+                    print("Encountered a NoSuchElement expection in NESTED next image button grab: " +
+                          str(NoSuchElementException))
+                except TimeoutException:
+                    print("Encountered a timeout expection in NESTED next image button grab: " +
+                          str(TimeoutException))
+            if k >= (TRIES - 1): #runs when there is no more next image button because there is no more images
+                print("Tried to grab button " + str(TRIES) + " times, skipping because we probably just ran out of photos"
                        + " for this bing image search")
                 for j in range((i + 1), number_of_photos_per_phrase):
                     sources.append(None) #fill remaining sources positions with None
                 break
-
             #print("MADE IT TO NEXT IMAGE!")
 
         print("Number of while loops because lastsrc == src: " + str(repeats))
         print("Done collecting image URLs: exiting browser...")
+
     driver.quit()
     return sources
     #TO HERE END SELENIUM WORK IN PROGRESS
