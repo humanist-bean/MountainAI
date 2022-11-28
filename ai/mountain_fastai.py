@@ -27,7 +27,7 @@ def main():
        "./", files, pat, item_tfms=Resize(460), batch_tfms=aug_transforms(size=224))
    learn = vision_learner(dls, resnet34, metrics=error_rate)
    #learn.show_results()
-   learn.lr_find()
+   learn.lr_find() #comment me out if ZeroDivisionError (caused by too few training images)
    learn.fine_tune(2, 3e-3)
    learn.path = Path("models/")
    print("Trained model sucessfully, trying to export...")
