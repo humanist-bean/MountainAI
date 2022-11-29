@@ -253,6 +253,9 @@ if __name__ == "__main__":
    print("Running mountain_soup.py...")
    #CONSTANTS
    #print(len(sys.argv))
+   # TODO: Update this so we process in batches of say 50 phrases each
+   # TODO: and then download files for each batch so if scraper crashes
+   # TODO: we don't have to start back at the very beginning of the list
    if len(sys.argv) > 1:
        phrase_text_file = str(sys.argv[1])
        image_folder_path = str(sys.argv[2])
