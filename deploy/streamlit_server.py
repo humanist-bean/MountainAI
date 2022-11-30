@@ -19,7 +19,7 @@ from fastai.vision.widgets import *
 #temp = pathlib.PosixPath
 #pathlib.PosixPath = pathlib.WindowsPath
 
-learn_inf = load_learner('models/cleaner_list_small.pkl')
+learn_inf = load_learner('models/export.pkl')
 
 st.header('MOUNTAIN AI ⛰️')
 st.subheader('Classify Mountains from their images!')
@@ -55,5 +55,5 @@ class Predict:
 
 
 if __name__ == '__main__':
-    file_name = 'models/cleaner_list_small.pkl'
+    file_name = 'models/export.pkl'
 predictor = Predict(file_name)

@@ -14,7 +14,7 @@ from fastai.vision.all import *
 
 def main():
    print("Running mountain_fastai.py...")
-   path = Path("images/test_cleaner_small/")
+   path = Path("../mountain_img_scraper/images/mountain_images_00_100each_first/")
    print("path: " + str(path))
    [print(str(f)) for f in path.iterdir() if f.is_file()]
    #files = get_image_files(path)
