@@ -189,8 +189,12 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 continue
         if not success:
             print("Failed to open page for: " + phrase + ", filling sources with None and continuing to next phrase...")
-            for y in range(0, number_of_photos_per_phrase):
-                sources.append(None)  # fill remaining sources positions with None
+            """ NOTE: Multithreading Update Code below from here  ** """
+            lock.acquire() 
+            for y in range(0, number_of_photos_per_phrase): 
+               sources.append(None)
+            lock.release()  
+            """ To here (end multithreading code update) """
             driver.quit()
             return sources
 
@@ -222,8 +226,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 sources.append
             finally:
                 lock.release()
-            # ** to here (end multithreading update code)
-            sources.append(src)
+
             for k in range(0, TRIES):  #try TRIES times then skip cuz probably no more photos and thus no button
                 try:
                     big_img_next_button = WebDriverWait(driver, 7).until(
@@ -244,9 +247,12 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                           str(TimeoutException))
             if k >= (TRIES - 1): #runs when there is no more next image button because there is no more images
                 print("Tried to grab button " + str(TRIES) + " times, skipping because we probably just ran out of photos"
-                       + " for this bing image search")
+                       + " for this bing image search, and filling remaining URL posititions with None")
+                lock.acquire() 
                 for j in range((i + 1), number_of_photos_per_phrase):
                     sources.append(None) #fill remaining sources positions with None
+                lock.release() 
+                    # ** to here (end multithreading update code)
                 break
             #print("MADE IT TO NEXT IMAGE!")
 
@@ -304,6 +310,17 @@ if __name__ == "__main__":
    SEARCH_PHRASES = ["mt hood", "Rainier", "mt st helens"]  # for testing!
    NUMBER_OF_PHOTOS = 5
    search_phrases = txt_to_phrase_list(phrase_text_file)
-   urls = get_image_sources(search_phrases, number_of_photos)
-   urls_to_images_in_folder(urls, image_folder_path, search_phrases, number_of_photos)
+   
+   """ Begin multithreading code update from here ** """
+   # urls = get_image_sources(search_phrases, number_of_photos)
+   # urls_to_images_in_folder(urls, image_folder_path, search_phrases, number_of_photos)
+
+   # Create two threads to collect URLs and download images concurrently
+   thread1 = threading.Thread(target=get_image_sources, args=(search_phrases, number_of_photos))
+   thread2 = threading.Thread(target=urls_to_images_in_folder, args=(urls, image_folder_path, search_phrases, number_of_photos))
+   # Start the threads
+   thread1.start()
+   thread2.start()
+   """ To here (end multithreading code update) """
+
    print("FINISHED: mountain_soup.py is done running...")
