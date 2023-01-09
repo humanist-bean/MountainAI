@@ -14,7 +14,7 @@ for training a mountain recognition AI.
 
 COMMANDS
 Example (this is tested and works given the folder test_images_01 already exists):
-"sudo python mountain_soup.py test_mountains_small.txt images/test_images_01/ 7"
+"python mountain_soup_multithreaded.py test_mountains_small.txt images/test_images_01/ 7"
 
 NOTE 1: this is intended for use with a virtualenv, which can be activated
 by switching to the "mountainenv" directory and typing into terminal:
@@ -68,8 +68,6 @@ images = []
 
 # Create a lock to synchronize access to the URLs and images
 lock = threading.Lock()
-
-
 
 def txt_to_phrase_list(txtFileString):
     """
