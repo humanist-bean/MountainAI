@@ -1,6 +1,11 @@
 """
 mountain_soup_multithreaded.py
-(duplicate of mountain_soup.py right now)
+
+Difference between mountain_soup.py and mountain_soup_multithreaded.py:
+duplicate of mountain_soup.py, with a couple modifications to allow mountain_soup
+to simoultaneously collect URLs from bing images using selenium while downloading
+those images to folders using the URls and a thread-safe url Queue that uses 
+Python's "threading" module's "lock". 
 
 Description: Extracts img src tags from search engine image search pages given
 a list of search phrases and downloads all the images on the webpages 
@@ -11,12 +16,16 @@ COMMANDS
 Example (this is tested and works given the folder test_images_01 already exists):
 "sudo python mountain_soup.py test_mountains_small.txt images/test_images_01/ 7"
 
-NOTE: this is intended for use with a virtualenv, which can be activated
+NOTE 1: this is intended for use with a virtualenv, which can be activated
 by switching to the "mountainenv" directory and typing into terminal:
 source bin/activate
 
 NOTE 2: this program requires having Selenium and Chromedriver setup, with 
 chromedriver added to PATH.
+
+NOTE 3: I used chatGPT generated code to help
+me with this modification. Seems like its pretty handy honestly. 
+
 
 - by Alder French, with help from this tutorial (beautifulsoup):
 https://www.makeuseof.com/python-scrape-web-images-how-to/
@@ -50,6 +59,15 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+# Bookkeeping - Below Added For Multithreading Update Starting 1/8/2023
+import threading
+
+# Global variables to store the URLs and the images
+urls = []
+images = []
+
+# Create a lock to synchronize access to the URLs and images
+lock = threading.Lock()
 
 
 
@@ -196,6 +214,15 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 time.sleep(TIME_BETWEEN_PHOTOS * (repeats + 1))
                 src = get_url_of_main_bing_image(driver)         
             print(str(i + 1) + ". image URL is: " + str(src))
+            """ NOTE: Multithreading Update Code below from here  **
+                - also I am trying to minimize the amount of time I spend holding the thread lock 
+                here. I think thats smart, I should probably double check though """
+            lock.acquire() 
+            try:
+                sources.append
+            finally:
+                lock.release()
+            # ** to here (end multithreading update code)
             sources.append(src)
             for k in range(0, TRIES):  #try TRIES times then skip cuz probably no more photos and thus no button
                 try:
@@ -240,15 +267,21 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
     OUTPUT: returns nothing but stores photos in folder. 
     """
     #parent_dir = "~/Desktop/MountainAI/mountain_img_scraper/"
-    parent_dir_less_slash = "~/Desktop/MountainAI/mountain_img_scraper"
+    #parent_dir_less_slash = "~/Desktop/MountainAI/mountain_img_scraper"
     k = 0
     for phrase in search_phrase_list:
         folder_path = path_to_images_folder
-        for i in range(0, number_of_each):
-            image = urls[i + (k * number_of_each)]
-            if image != None:
-                webs = requests.get(image)
-                open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
+        """ NOTE: Multithreading Update Code below from here  ** """
+        lock.acquire()
+        try:
+            for i in range(0, number_of_each):
+                image = urls[i + (k * number_of_each)]
+                if image != None:
+                    webs = requests.get(image)
+                    open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
+        finally:
+            lock.release()
+        # ** to here (end multithreading update code changes)
         k += 1
 
 
