@@ -61,9 +61,10 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
 # Bookkeeping - Below Added For Multithreading Update Starting 1/8/2023
 import threading
+from queue import Queue
 
 # Global variables to store the URLs and the images
-urls = []
+urls = Queue()
 images = []
 
 # Create a lock to synchronize access to the URLs and images
@@ -128,19 +129,19 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
     ### image collection but also makes it so we only collect URLs
     ### of the lower quality images, which might be ok...
 
+    """
     chrome_prefs = {
         "profile.default_content_setting_values": {
             "images": 2,
         }
     }
     chrome_options.experimental_options["prefs"] = chrome_prefs
-
+    """
     ###
 
     search_phrases = search_phrase_list #["mt hood"] #SEARCH_PHRASES
     # THIS WORKS! YAY GOT SELENIUM WORKING!
     driver = webdriver.Chrome(options=chrome_options)
-    sources = []
     for phrase in search_phrases:
         words = phrase.split()
         if len(words) <= 0:
@@ -190,11 +191,11 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
             """ NOTE: Multithreading Update Code below from here  ** """
             lock.acquire() 
             for y in range(0, number_of_photos_per_phrase): 
-               sources.append(None)
+               urls.put(None)
             lock.release()  
             """ To here (end multithreading code update) """
             driver.quit()
-            return sources
+            continue # skip to next phrase in phrase list after filling positions for current phrase with None
 
         #TESTED AND WORKS UP TO HERE
         
@@ -221,7 +222,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 here. I think thats smart, I should probably double check though """
             lock.acquire() 
             try:
-                sources.append
+                urls.put(src)
             finally:
                 lock.release()
 
@@ -240,6 +241,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                 except NoSuchElementException:
                     print("Encountered a NoSuchElement expection in NESTED next image button grab: " +
                           str(NoSuchElementException))
+                    time.sleep(1)
                 except TimeoutException:
                     print("Encountered a timeout expection in NESTED next image button grab: " +
                           str(TimeoutException))
@@ -248,7 +250,7 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
                        + " for this bing image search, and filling remaining URL posititions with None")
                 lock.acquire() 
                 for j in range((i + 1), number_of_photos_per_phrase):
-                    sources.append(None) #fill remaining sources positions with None
+                    urls.put(None) #fill remaining sources positions with None
                 lock.release() 
                     # ** to here (end multithreading update code)
                 break
@@ -258,11 +260,11 @@ def get_image_sources(search_phrase_list, number_of_photos_per_phrase):
         print("Done collecting image URLs: exiting browser...")
 
     driver.quit()
-    return sources
+    return
     #TO HERE END SELENIUM WORK IN PROGRESS
 
 
-def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, number_of_each):
+def urls_to_images_in_folder(scraping_thread, path_to_images_folder, search_phrase_list, number_of_each):
     """
     INPUT: a python list of urls from get_imageg_sources(), and a string that
     is a path to the folder where the user wants their images to go.
@@ -270,23 +272,58 @@ def urls_to_images_in_folder(urls, path_to_images_folder, search_phrase_list, nu
 
     OUTPUT: returns nothing but stores photos in folder. 
     """
+
+    """ OLD CODE
     #parent_dir = "~/Desktop/MountainAI/mountain_img_scraper/"
     #parent_dir_less_slash = "~/Desktop/MountainAI/mountain_img_scraper"
     k = 0
     for phrase in search_phrase_list:
         folder_path = path_to_images_folder
-        """ NOTE: Multithreading Update Code below from here  ** """
+        # NOTE: Multithreading Update Code below from here  ** 
         lock.acquire()
         try:
-            for i in range(0, number_of_each):
-                image = urls[i + (k * number_of_each)]
+            i = 0
+            while not urls.empty(): # should have number_of_each # of URLS per phrase with None in error positions
+                image = urls.get()
                 if image != None:
                     webs = requests.get(image)
                     open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
+                i += 1
+
+            # Old non-multithreaded for loop
+            for i in range(0, number_of_each): #TODO: make it so this only runs when there are urls ready to go. 
+                image = urls[i + (k * number_of_each)] 
+                if image != None:
+                    webs = requests.get(image)
+                    open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
+            #
         finally:
             lock.release()
         # ** to here (end multithreading update code changes)
         k += 1
+    """
+
+    k = 0
+    i = 0
+    folder_path = path_to_images_folder
+    while scraping_thread.is_alive() or not urls.empty():
+        lock.acquire()
+        try:
+            phrase = search_phrase_list[0]
+            while not urls.empty():
+                if i >= number_of_each: # update phrase when we finish downloading all photos for a phrase
+                    i = 0
+                    k += 1
+                    phrase = search_phrase_list[k] #use k as index into respective phrases from search_phrase_list
+                image = urls.get()
+                if image != None: # remember None is in positions where there was an error getting the image source
+                    webs = requests.get(image)
+                    open(folder_path + phrase + " " + str(i) + ".jpg", 'wb').write(webs.content)
+                i += 1
+        finally:
+            lock.release()
+
+
 
 
 
@@ -315,10 +352,13 @@ if __name__ == "__main__":
 
    # Create two threads to collect URLs and download images concurrently
    thread1 = threading.Thread(target=get_image_sources, args=(search_phrases, number_of_photos))
-   thread2 = threading.Thread(target=urls_to_images_in_folder, args=(urls, image_folder_path, search_phrases, number_of_photos))
+   thread2 = threading.Thread(target=urls_to_images_in_folder, args=(thread1, image_folder_path, search_phrases, number_of_photos))
    # Start the threads
    thread1.start()
    thread2.start()
+   # End the  threads
+   thread1.join()
+   thread2.join()
    """ To here (end multithreading code update) """
 
    print("FINISHED: mountain_soup.py is done running...")
